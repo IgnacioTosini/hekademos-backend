@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  hekademos-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=production
+      - DATABASE_URL=jdbc:postgresql://ep-mute-sound-ac55p1p5-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      - DATABASE_USERNAME=neondb_owner
+      - DATABASE_PASSWORD=npg_vYQgznx3LpM0
+      - DATABASE_DRIVER=org.postgresql.Driver
+      - DATABASE_DIALECT=org.hibernate.dialect.PostgreSQLDialect
+      - FRONTEND_URL=https://hekademos-frontend.vercel.app
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_EXPIRATION=3600000
+      - LOG_LEVEL=INFO
+      - SECURITY_LOG_LEVEL=WARN
+      - SHOW_SQL=false
+      - YOUTUBE_API_KEY=AIzaSyBdJ-2KEINyG2nJ74GSSv_HyCg1L4hYxXE
+      - YOUTUBE_CHANNEL_HANDLE=@HekademosE.M
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
