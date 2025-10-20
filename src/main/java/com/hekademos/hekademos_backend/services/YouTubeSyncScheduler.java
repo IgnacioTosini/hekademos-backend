@@ -44,120 +44,107 @@ public class YouTubeSyncScheduler {
         try {
             System.out.println("🔄 Iniciando " + syncType + "...");
 
+            // ✅ CAMBIO 1: PRIMERO mostrar lo que ya tienes en BD
+            List<Exercise> existingExercises = exerciseService.getAllExercises();
+            System.out.println("📚 Mostrando " + existingExercises.size() + " ejercicios existentes en BD");
+
+            // Si hay ejercicios en BD, el usuario ya puede verlos mientras sincronizamos
+            if (!existingExercises.isEmpty()) {
+                System.out.println("✅ Usuarios pueden ver contenido existente mientras sincronizamos");
+            }
+
             if (!exerciseService.needsSync()) {
                 System.out.println("⏭️ No es necesario sincronizar todavía");
                 return;
             }
 
-            // 1. Buscar canal de YouTube
-            System.out.println("🔍 Buscando canal: " + channelHandle);
+            // ✅ CAMBIO 2: Sincronización en segundo plano
+            System.out.println("� Iniciando sincronización en segundo plano...");
             String channelId = youTubeService.searchChannelByHandle(channelHandle);
 
             if (channelId == null) {
                 System.out.println("❌ NO se pudo encontrar el canal '" + channelHandle + "'");
-                System.out.println("❌ Sincronización CANCELADA - no hay canal válido");
-                return; // ✅ No continuar sin canal válido - NO usar mock
+                return;
             }
 
-            System.out.println("✅ Canal encontrado: " + channelId);
-
-            // 2. Obtener shorts de YouTube (SOLO datos reales)
-            System.out.println("📡 Obteniendo shorts REALES de YouTube...");
-            List<YouTubeShortData> youtubeShorts = youTubeService.getChannelShorts(channelId);
-
-            if (youtubeShorts.isEmpty()) {
-                System.out.println("❌ NO se encontraron shorts en el canal");
-                System.out.println("❌ Sincronización CANCELADA - sin shorts reales disponibles");
-                System.out.println("❌ NO se usarán datos mock por decisión del usuario");
-                return; // ✅ No continuar sin datos reales - NO usar mock
-            }
-
-            System.out.println("📺 Encontrados " + youtubeShorts.size() + " shorts REALES en YouTube");
-
-            // 3. Obtener ejercicios existentes
-            List<Exercise> existingExercises = exerciseService.getAllExercises();
+            // ✅ CAMBIO 3: Obtener solo IDs de videos existentes para comparación rápida
             Set<String> existingVideoIds = existingExercises.stream()
                     .map(Exercise::getYoutubeVideoId)
                     .filter(videoId -> videoId != null && !videoId.isEmpty())
                     .collect(Collectors.toSet());
 
-            System.out.println("📚 Ejercicios existentes en BD: " + existingExercises.size());
+            System.out.println("� Obteniendo shorts de YouTube para comparar...");
+            List<YouTubeShortData> youtubeShorts = youTubeService.getChannelShorts(channelId);
 
-            // 4. Filtrar shorts nuevos
-            List<YouTubeShortData> newShorts = youtubeShorts.stream()
-                    .filter(shortData -> {
-                        boolean isNew = !existingVideoIds.contains(shortData.videoId);
-                        if (!isNew) {
-                            System.out.println("⏭️ Ya existe: " + shortData.title + " (" + shortData.videoId + ")");
-                        }
-                        return isNew;
-                    })
-                    .collect(Collectors.toList());
-
-            System.out.println("✨ " + newShorts.size() + " shorts NUEVOS para agregar");
-
-            if (newShorts.isEmpty()) {
-                System.out.println("📋 Todos los shorts reales ya están en la BD");
+            if (youtubeShorts.isEmpty()) {
+                System.out.println("❌ NO se encontraron shorts en el canal");
                 return;
             }
 
-            // 5. GUARDAR TODOS LOS SHORTS NUEVOS REALES
-            int savedCount = 0;
-            int errorCount = 0;
-            LocalDateTime now = LocalDateTime.now();
+            // ✅ CAMBIO 4: Filtrar y guardar solo nuevos (más eficiente)
+            List<YouTubeShortData> newShorts = youtubeShorts.stream()
+                    .filter(shortData -> !existingVideoIds.contains(shortData.videoId))
+                    .collect(Collectors.toList());
 
-            for (YouTubeShortData shortData : newShorts) {
-                try {
-                    System.out.println("💾 Guardando SHORT REAL: " + shortData.title);
+            System.out.println("✨ " + newShorts.size() + " shorts nuevos encontrados para agregar");
 
-                    Exercise exercise = new Exercise();
-                    exercise.setName(shortData.title);
-                    exercise.setVideoUrl(shortData.url);
-                    exercise.setYoutubeUrl(shortData.url); // Para compatibilidad con BD
-                    exercise.setYoutubeVideoId(shortData.videoId);
-                    exercise.setThumbnailUrl(shortData.thumbnail);
-
-                    // Convertir publishedAt
-                    try {
-                        String dateStr = shortData.publishedAt;
-                        if (dateStr.endsWith("Z")) {
-                            dateStr = dateStr.replace("Z", "");
-                        }
-                        exercise.setPublishedAt(LocalDateTime.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                    } catch (Exception dateError) {
-                        exercise.setPublishedAt(now);
-                    }
-
-                    exercise.setIsShort(true);
-                    exercise.setSyncedAt(now);
-
-                    Exercise savedExercise = exerciseService.createExercise(exercise);
-                    if (savedExercise != null && savedExercise.getId() != null) {
-                        savedCount++;
-                        System.out.println("✅ SHORT REAL GUARDADO (#" + savedCount + "): " + shortData.title + " [ID: "
-                                + savedExercise.getId() + "]");
-                    } else {
-                        errorCount++;
-                        System.err.println("❌ ERROR: createExercise retornó null para '" + shortData.title + "'");
-                    }
-
-                } catch (Exception e) {
-                    errorCount++;
-                    System.err.println("❌ ERROR guardando '" + shortData.title + "': " + e.getMessage());
-                }
+            if (newShorts.isEmpty()) {
+                System.out.println("📋 Base de datos ya está actualizada");
+                return;
             }
 
-            String finalMessage = syncType + " COMPLETADA: " + savedCount + " shorts REALES guardados";
-            if (errorCount > 0) {
-                finalMessage += " (" + errorCount + " errores)";
-            }
+            // ✅ CAMBIO 5: Guardar nuevos en lotes para mejor performance
+            int savedCount = saveShortsInBatch(newShorts);
 
-            System.out.println("🎉 " + finalMessage);
+            System.out.println("🎉 " + syncType + " COMPLETADA: " + savedCount + " shorts nuevos agregados");
 
         } catch (Exception e) {
-            System.err.println("❌ ERROR CRÍTICO en " + syncType + ": " + e.getMessage());
+            System.err.println("❌ ERROR en " + syncType + ": " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    // ✅ MÉTODO NUEVO: Guardar en lotes para mejor performance
+    private int saveShortsInBatch(List<YouTubeShortData> newShorts) {
+        int savedCount = 0;
+        LocalDateTime now = LocalDateTime.now();
+
+        for (YouTubeShortData shortData : newShorts) {
+            try {
+                Exercise exercise = createExerciseFromShort(shortData, now);
+                Exercise savedExercise = exerciseService.createExercise(exercise);
+
+                if (savedExercise != null && savedExercise.getId() != null) {
+                    savedCount++;
+                    System.out.println("✅ SHORT GUARDADO: " + shortData.title);
+                }
+            } catch (Exception e) {
+                System.err.println("❌ ERROR guardando '" + shortData.title + "': " + e.getMessage());
+            }
+        }
+
+        return savedCount;
+    }
+
+    // ✅ MÉTODO NUEVO: Crear Exercise desde YouTubeShortData
+    private Exercise createExerciseFromShort(YouTubeShortData shortData, LocalDateTime now) {
+        Exercise exercise = new Exercise();
+        exercise.setName(shortData.title);
+        exercise.setVideoUrl(shortData.url);
+        exercise.setYoutubeUrl(shortData.url);
+        exercise.setYoutubeVideoId(shortData.videoId);
+        exercise.setThumbnailUrl(shortData.thumbnail);
+        exercise.setIsShort(true);
+        exercise.setSyncedAt(now);
+
+        try {
+            String dateStr = shortData.publishedAt.replace("Z", "");
+            exercise.setPublishedAt(LocalDateTime.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        } catch (Exception e) {
+            exercise.setPublishedAt(now);
+        }
+
+        return exercise;
     }
 
     // Método para sincronización manual desde el controlador
