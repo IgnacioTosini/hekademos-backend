@@ -6,6 +6,8 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,8 +47,8 @@ public class ExerciseService implements IExerciseService {
     // Nuevos métodos para YouTube Shorts
     @Override
     @Transactional(readOnly = true)
-    public List<Exercise> getShorts() {
-        return exerciseRepository.findByIsShortTrue();
+    public Page<Exercise> getShorts(Pageable pageable) {
+        return exerciseRepository.findByIsShortTrue(pageable);
     }
 
     @Override
@@ -64,7 +66,7 @@ public class ExerciseService implements IExerciseService {
     @Override
     @Transactional(readOnly = true)
     public boolean needsSync() {
-        List<Exercise> shorts = getShorts();
+        List<Exercise> shorts = getShorts(Pageable.unpaged()).getContent();
         if (shorts.isEmpty()) {
             return true;
         }

@@ -1,6 +1,9 @@
 package com.hekademos.hekademos_backend.repositories;
 
 import com.hekademos.hekademos_backend.entities.Exercise;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,7 +26,7 @@ public interface ExerciseRepository extends JpaRepository<Exercise, Long> {
     List<Exercise> findByVideoUrlContaining(String videoUrl);
 
     // Métodos específicos para YouTube
-    List<Exercise> findByIsShortTrue();
+    Page<Exercise> findByIsShortTrue(Pageable pageable);
 
     Optional<Exercise> findByYoutubeVideoId(String youtubeVideoId);
 

@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import com.hekademos.hekademos_backend.entities.Exercise;
 
 public interface IExerciseService {
@@ -15,7 +18,7 @@ public interface IExerciseService {
 
     Optional<Exercise> getExerciseByYoutubeUrl(String youtubeUrl);
 
-    List<Exercise> getShorts();
+    Page<Exercise> getShorts(Pageable pageable); // Para paginación de shorts
 
     List<Exercise> getExercisesByName(String name); // Para búsqueda multiple
 
