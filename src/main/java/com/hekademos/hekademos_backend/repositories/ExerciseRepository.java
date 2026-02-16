@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface ExerciseRepository extends JpaRepository<Exercise, Long> {
@@ -29,4 +30,8 @@ public interface ExerciseRepository extends JpaRepository<Exercise, Long> {
     @Query("SELECT e FROM Exercise e WHERE e.isShort = true AND e.syncedAt < :cutoffDate")
     List<Exercise> findShortsNeedingSync(
             @Param("cutoffDate") java.time.LocalDateTime cutoffDate);
+
+    @Query("SELECT e.youtubeVideoId FROM Exercise e WHERE e.youtubeVideoId IS NOT NULL")
+    Set<String> findAllYoutubeVideoIds();
+
 }

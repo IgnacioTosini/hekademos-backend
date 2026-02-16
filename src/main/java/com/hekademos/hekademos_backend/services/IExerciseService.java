@@ -2,6 +2,7 @@ package com.hekademos.hekademos_backend.services;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import com.hekademos.hekademos_backend.entities.Exercise;
 
@@ -27,4 +28,9 @@ public interface IExerciseService {
     Exercise updateExercise(Long id, Exercise exercise);
 
     boolean deleteExercise(Long id);
+
+    Set<String> getAllYoutubeVideoIds();
+
+    void saveAll(List<Exercise> exercises);
+
 }

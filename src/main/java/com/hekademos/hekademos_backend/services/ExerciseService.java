@@ -3,6 +3,7 @@ package com.hekademos.hekademos_backend.services;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -151,4 +152,15 @@ public class ExerciseService implements IExerciseService {
             throw new RuntimeException("Error al eliminar el ejercicio: " + e.getMessage(), e);
         }
     }
+
+    @Override
+    public Set<String> getAllYoutubeVideoIds() {
+        return exerciseRepository.findAllYoutubeVideoIds();
+    }
+
+    @Override
+    public void saveAll(List<Exercise> exercises) {
+        exerciseRepository.saveAll(exercises);
+    }
+
 }

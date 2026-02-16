@@ -1,0 +1,21 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: [openid, profile, email]
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+server:
+  port: 8080
+
+app:
+  frontend-url: http://localhost:5173
+  jwt-secret: ${APP_JWT_SECRET}
+  jwt-exp-minutes: 60
