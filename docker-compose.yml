@@ -14,7 +14,7 @@ services:
       - DATABASE_PASSWORD=npg_vYQgznx3LpM0
       - DATABASE_DRIVER=org.postgresql.Driver
       - DATABASE_DIALECT=org.hibernate.dialect.PostgreSQLDialect
-      - FRONTEND_URL=https://hekademos-frontend.vercel.app
+      - FRONTEND_URL=https://hekademos.vercel.app
       - JWT_SECRET=your-super-secret-jwt-key-change-in-production
       - JWT_EXPIRATION=3600000
       - LOG_LEVEL=INFO

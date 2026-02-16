@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 
 @Controller
 @RequestMapping("/api/exercises")
-@CrossOrigin(origins = { "http://localhost:5173", "http://127.0.0.1:5173", "https://hekademos-frontend.vercel.app" })
+@CrossOrigin(origins = { "http://localhost:5173", "http://127.0.0.1:5173", "https://hekademos.vercel.app" })
 public class ExerciseController {
     @Autowired
     private IExerciseService exerciseService;
