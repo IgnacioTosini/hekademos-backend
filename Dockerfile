@@ -1,43 +1,38 @@
-# Usar una imagen base de OpenJDK 17 con Alpine para menor tamaño
-FROM openjdk:17-jdk-alpine
+# Usar Eclipse Temurin (reemplazo oficial de openjdk)
+FROM eclipse-temurin:17-jdk-alpine
 
-# Información del mantenedor
 LABEL maintainer="IgnacioTosini"
 
-# Crear un usuario no-root para mayor seguridad
+# Crear usuario no-root
 RUN addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
 
-# Establecer el directorio de trabajo
 WORKDIR /app
 
-# Copiar los archivos de Maven wrapper y pom.xml primero (para aprovechar cache de Docker)
+# Copiar archivos necesarios para cachear dependencias
 COPY mvnw ./
 COPY mvnw.cmd ./
 COPY .mvn .mvn
 COPY pom.xml ./
 
-# Dar permisos de ejecución al wrapper de Maven
+# Dar permisos al wrapper
 RUN chmod +x ./mvnw
 
-# Descargar dependencias (esto se cachea si no cambia el pom.xml)
+# Descargar dependencias
 RUN ./mvnw dependency:go-offline -B
 
-# Copiar el código fuente
+# Copiar código fuente
 COPY src ./src
 
-# Compilar la aplicación
+# Compilar aplicación
 RUN ./mvnw clean package -DskipTests
 
-# Cambiar al usuario no-root
+# Cambiar a usuario seguro
 USER appuser
 
-# Exponer el puerto
 EXPOSE 8080
 
-# Variables de entorno por defecto
 ENV JAVA_OPTS="-Xmx512m -Xms256m"
 ENV SPRING_PROFILES_ACTIVE=production
 
-# Comando para ejecutar la aplicación
 CMD ["sh", "-c", "java $JAVA_OPTS -jar target/hekademos-backend-*.jar"]
